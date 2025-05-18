@@ -2,26 +2,175 @@ import { NextFunction, Request, Response } from "express";
 import path from "path";
 import { Op, fn, literal } from "sequelize";
 import sequelize from "../config/sequelize";
-import { BookingDetail, BookingHotel, Hotel, Room, User } from "../models";
+import {
+  BookingDetail,
+  BookingHistory,
+  BookingHotel,
+  Hotel,
+  Promotion,
+  Room,
+  RoomPriceAdjustment,
+  User,
+} from "../models";
 import moment from "moment-timezone";
 import axios from "axios";
+import nodemailer from "nodemailer";
+import { AppName } from "../config/constants";
+import {
+  scheduleBookingReminder,
+  sendImmediateReminder,
+} from "../services/reminderService";
+
+// Cấu hình transporter cho nodemailer (sao chép từ manageController.ts)
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "thien190602@gmail.com",
+    pass: "rsmp zfey ussc ikrd",
+  },
+});
+
+// Hàm gửi email (sao chép từ manageController.ts)
+const sendEmail = async (
+  toEmail: any,
+  subject: any,
+  textContent: any,
+  htmlContent: any
+) => {
+  try {
+    const mailOptions = {
+      from: "thien190602@gmail.com", // Địa chỉ email gửi đi
+      to: toEmail, // Địa chỉ email người nhận
+      subject: subject, // Chủ đề email
+      text: textContent, // Nội dung văn bản
+      html: htmlContent, // Nội dung HTML
+    };
+    console.log("mailOptions", mailOptions);
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent: " + info.response);
+    return true;
+  } catch (error) {
+    console.error("Error sending email:", error);
+    return false;
+  }
+};
+
+// Hàm gửi email xác nhận đặt phòng
+const sendBookingConfirmationEmail = async (
+  booking: any,
+  formData: any,
+  hotel: any,
+  selectedRooms: any
+) => {
+  const checkInDate = moment(booking.checkin_date).format("DD/MM/YYYY");
+  const checkOutDate = moment(booking.checkout_date).format("DD/MM/YYYY");
+  const nights = moment(booking.checkout_date).diff(
+    moment(booking.checkin_date),
+    "days"
+  );
+
+  // Tạo danh sách phòng đã đặt
+  const roomsList = selectedRooms
+    .map(
+      (room: any) =>
+        `<li>${room.loaichonghi || "Phòng"} - ${room.quantity} phòng - ${Number(
+          room.final_price
+        ).toLocaleString()} VND</li>`
+    )
+    .join("");
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 10px; text-align: left; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);">
+      <h1 style="color: #007bff; text-align: center;">Xác nhận đặt phòng</h1>
+      
+      <div style="background-color: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h2 style="color: #333; margin-top: 0;">Thông tin đặt phòng</h2>
+        <p><strong>Mã đặt phòng:</strong> #${booking.id}</p>
+        <p><strong>Khách sạn:</strong> ${hotel.name}</p>
+        <p><strong>Địa chỉ:</strong> ${hotel.address}</p>
+        <p><strong>Ngày nhận phòng:</strong> ${checkInDate}</p>
+        <p><strong>Ngày trả phòng:</strong> ${checkOutDate}</p>
+        <p><strong>Số đêm:</strong> ${nights}</p>
+      </div>
+      
+      <div style="background-color: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h2 style="color: #333; margin-top: 0;">Thông tin khách hàng</h2>
+        <p><strong>Họ tên:</strong> ${formData.guest_firstname} ${
+    formData.guest_lastname
+  }</p>
+        <p><strong>Email:</strong> ${formData.guest_email}</p>
+        <p><strong>Số điện thoại:</strong> ${formData.guest_phone}</p>
+      </div>
+      
+      <div style="background-color: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h2 style="color: #333; margin-top: 0;">Chi tiết phòng</h2>
+        <ul style="padding-left: 20px;">
+          ${roomsList}
+        </ul>
+        <p style="font-weight: bold; font-size: 18px; margin-top: 15px;">Tổng tiền: ${Number(
+          booking.total_price
+        ).toLocaleString()} VND</p>
+        <p><strong>Phương thức thanh toán:</strong> ${
+          booking.payment_method === "CASH"
+            ? "Tiền mặt tại khách sạn"
+            : "Thanh toán trực tuyến"
+        }</p>
+      </div>
+      
+      <div style="background-color: #fff; padding: 15px; border-radius: 8px;">
+        <h2 style="color: #333; margin-top: 0;">Chính sách hủy phòng</h2>
+        <p>Bạn có thể hủy phòng miễn phí đến 18:00 ngày nhận phòng. Bạn sẽ phải trả toàn bộ tiền phòng nếu bạn hủy sau 18:00 ngày nhận phòng.</p>
+      </div>
+      
+      <hr style="border: 0; border-top: 1px solid #ddd; margin: 30px 0;">
+      
+      <p style="color: #999; font-size: 12px; text-align: center;">
+        Bản quyền © 2025–2030 ${AppName}. Bảo lưu mọi quyền.
+      </p>
+      <p style="color: #999; font-size: 12px; text-align: center;">
+        Email này được gửi bởi ${AppName}, Thủ Dầu Một, Bình Dương, Việt Nam.
+      </p>
+    </div>
+  `;
+
+  return await sendEmail(
+    formData.guest_email,
+    `Xác nhận đặt phòng #${booking.id}`,
+    `Xác nhận đặt phòng tại ${hotel.name}`,
+    htmlContent
+  );
+};
 
 export const createBooking = async (req: Request, res: Response) => {
   const { formData, hotelId, selectedRooms, searchCondition, payment } =
     req.body;
 
-  const totalPrice = selectedRooms.reduce(
-    (acc: number, room: any) => acc + room.roomPrice * room.quantity,
+  const totalFinalPrice = selectedRooms.reduce(
+    (acc: number, room: any) => acc + room.final_price * room.quantity,
+    0
+  );
+  const totalInitialPrice = selectedRooms.reduce(
+    (acc: number, room: any) => acc + room.initial_price * room.quantity,
     0
   );
 
+  console.log("totalInitialPrice", totalInitialPrice);
+  console.log("totalFinalPrice", totalFinalPrice);
   try {
     const result = await sequelize.transaction(async (t) => {
+      // Lấy thông tin khách sạn
+      const hotel = await Hotel.findByPk(hotelId, { transaction: t });
+
+      if (!hotel) {
+        throw new Error("Không tìm thấy thông tin khách sạn");
+      }
+
       const booking: any = await BookingHotel.create(
         {
           id_user: 16,
           id_hotel: hotelId,
-          total_price: totalPrice,
+          total_price: totalFinalPrice,
           status: "PENDING",
           checkin_date: searchCondition.checkInDate,
           checkout_date: searchCondition.checkOutDate,
@@ -56,9 +205,11 @@ export const createBooking = async (req: Request, res: Response) => {
         }
       }
       await BookingDetail.bulkCreate(bookingDetails, { transaction: t });
+
+      // Xử lý thanh toán
       if (payment === "CREDIT_CARD") {
         console.log({
-          amount: totalPrice,
+          amount: totalFinalPrice,
           bookingId: plainBooking.id,
         });
         try {
@@ -66,7 +217,7 @@ export const createBooking = async (req: Request, res: Response) => {
           const paymentResponse = await axios.post(
             `http://localhost:5000/payment/create`,
             {
-              amount: totalPrice,
+              amount: totalFinalPrice,
               bookingId: plainBooking.id,
               description: `Thanh toán đặt phòng #${plainBooking.id}`,
             }
@@ -81,7 +232,18 @@ export const createBooking = async (req: Request, res: Response) => {
             }`
           );
         }
+      } else if (payment === "CASH") {
+        // Gửi email xác nhận đặt phòng nếu thanh toán bằng tiền mặt
+        await sendBookingConfirmationEmail(
+          plainBooking,
+          formData,
+          hotel,
+          selectedRooms
+        );
       }
+
+      // Lập lịch gửi email nhắc nhở sau 2 phút
+      await scheduleBookingReminder(plainBooking.id);
 
       return plainBooking;
     });
@@ -303,5 +465,255 @@ export const cancelBooking = async (req: Request, res: Response) => {
     res.status(500).json({
       message: "Lỗi server",
     });
+  }
+};
+
+// Thêm API endpoint mới để gửi email xác nhận đặt phòng
+export const sendBookingConfirmationEmailManually = async (
+  req: any,
+  res: any
+) => {
+  const { bookingId } = req.params;
+  const { formData } = req.body;
+
+  try {
+    // Lấy thông tin đặt phòng
+    const booking = await BookingHotel.findOne({
+      where: { id: bookingId },
+      include: [
+        {
+          model: Hotel,
+        },
+        {
+          model: BookingDetail,
+          include: [
+            {
+              model: Room,
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!booking) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy thông tin đặt phòng" });
+    }
+
+    // Chuẩn bị dữ liệu cho email
+    const plainBooking = booking.get({ plain: true });
+    const hotel = plainBooking.Hotel;
+
+    // Tạo danh sách phòng từ booking details
+    const selectedRooms = plainBooking.BookingDetails.map((detail: any) => ({
+      loaichonghi: detail.Room.loaichonghi,
+      quantity: 1,
+      final_price: detail.price,
+    }));
+
+    // Gộp các phòng cùng loại
+    const roomGroups: any = {};
+    selectedRooms.forEach((room: any) => {
+      if (!roomGroups[room.loaichonghi]) {
+        roomGroups[room.loaichonghi] = {
+          loaichonghi: room.loaichonghi,
+          quantity: 0,
+          final_price: room.final_price,
+        };
+      }
+      roomGroups[room.loaichonghi].quantity += 1;
+    });
+
+    const groupedRooms = Object.values(roomGroups);
+
+    // Gửi email
+    const emailSent = await sendBookingConfirmationEmail(
+      plainBooking,
+      formData,
+      hotel,
+      groupedRooms
+    );
+
+    if (emailSent) {
+      res
+        .status(200)
+        .json({ message: "Email xác nhận đã được gửi thành công" });
+    } else {
+      res.status(500).json({ message: "Không thể gửi email xác nhận" });
+    }
+  } catch (error) {
+    console.error("Error sending confirmation email:", error);
+    res.status(500).json({ message: "Lỗi server khi gửi email xác nhận" });
+  }
+};
+
+// Cập nhật trạng thái thanh toán
+export const updatePaymentStatus = async (req: any, res: any) => {
+  const { bookingId, status } = req.body;
+  console.log("bookingId", bookingId);
+  console.log("status", status);
+
+  if (!bookingId || !status) {
+    return res.status(400).json({ message: "Thiếu thông tin cần thiết" });
+  }
+
+  try {
+    const booking = await BookingHotel.findByPk(bookingId);
+
+    if (!booking) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy thông tin đặt phòng" });
+    }
+
+    // Cập nhật trạng thái thanh toán
+    await booking.update({
+      is_paid: status === "SUCCESS",
+      payment_status: status,
+      // Nếu thanh toán thành công, cập nhật trạng thái đặt phòng thành CONFIRMED
+      ...(status === "SUCCESS" ? { status: "CONFIRMED" } : {}),
+    });
+
+    // Cập nhật trạng thái các booking detail
+    if (status === "SUCCESS") {
+      await BookingDetail.update(
+        { status: "CONFIRMED" },
+        { where: { id_booking_hotel: bookingId } }
+      );
+    }
+
+    res.status(200).json({
+      message: "Cập nhật trạng thái thanh toán thành công",
+      booking,
+    });
+  } catch (error) {
+    console.error("Error updating payment status:", error);
+    res
+      .status(500)
+      .json({ message: "Lỗi server khi cập nhật trạng thái thanh toán" });
+  }
+};
+
+// Thêm API endpoint mới để gửi email nhắc lịch thủ công
+export const sendBookingReminder = async (req: Request, res: Response) => {
+  const { bookingId } = req.params;
+
+  try {
+    const success = await sendImmediateReminder(parseInt(bookingId));
+
+    if (success) {
+      res
+        .status(200)
+        .json({ message: "Email nhắc lịch đã được gửi thành công" });
+    } else {
+      res.status(500).json({ message: "Không thể gửi email nhắc lịch" });
+    }
+  } catch (error) {
+    console.error("Error sending reminder:", error);
+    res.status(500).json({ message: "Lỗi server khi gửi email nhắc lịch" });
+  }
+};
+
+export const getRevenueReport = async (req: any, res: any) => {
+  try {
+    const { hotelId } = req.params;
+    console.log("hotelId", hotelId);
+    const { status, checkin_date } = req.query;
+
+    // Xây dựng điều kiện lọc
+    const where: any = { id_hotel: hotelId };
+    if (status) {
+      where.status = status;
+    }
+    if (checkin_date) {
+      where.checkin_date = {
+        [Op.eq]: checkin_date,
+      };
+    }
+
+    // Lấy danh sách đặt phòng
+    const bookings = await BookingHotel.findAll({
+      where,
+      include: [
+        {
+          model: User,
+          attributes: ["id", "firstname", "lastname", "phonenumber", "email"],
+        },
+        {
+          model: Hotel,
+          attributes: ["id", "name", "address"],
+          include: [
+            {
+              model: Room,
+              attributes: [
+                "id",
+                "id_hotel",
+                "nameroom",
+                "sotien",
+                "soluongkhach",
+              ],
+              include: [
+                {
+                  model: Promotion,
+                  attributes: [
+                    "id",
+                    "id_hotel",
+                    "id_room",
+                    "name",
+                    "discount_type",
+                    "discount_value",
+                    "start_date",
+                    "end_date",
+                    "is_active",
+                  ],
+                  where: { is_active: true },
+                  required: false,
+                },
+                {
+                  model: RoomPriceAdjustment,
+                  attributes: [
+                    "id",
+                    "id_room",
+                    "reason",
+                    "adjustment_type",
+                    "adjustment_value",
+                    "apply_to_days",
+                    "start_date",
+                    "end_date",
+                  ],
+                  required: false,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          model: BookingHistory,
+          attributes: [
+            "id",
+            "id_booking_hotel",
+            "old_checkin_date",
+            "old_checkout_date",
+            "new_checkin_date",
+            "new_checkout_date",
+            "changed_by",
+            "changed_at",
+            "reason",
+          ],
+          required: false,
+        },
+      ],
+      order: [["checkin_date", "DESC"]], // Sắp xếp theo checkin_date giảm dần
+    });
+
+    if (!bookings || bookings.length === 0) {
+      return res.status(404).json({ message: "Không tìm thấy đặt phòng" });
+    }
+
+    return res.status(200).json(bookings);
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách đặt phòng:", error);
+    res.status(500).json({ message: "Lỗi server" });
   }
 };

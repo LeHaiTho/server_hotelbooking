@@ -15,6 +15,7 @@ class Hotel extends Model {
   public apartment?: string;
   public city?: string;
   public zipcode?: string;
+  public address_no_diacritic?: string;
   public country?: string;
   public rate?: number;
   public checkinfrom?: string;
@@ -48,6 +49,10 @@ Hotel.init(
       allowNull: true,
     },
     address: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    address_no_diacritic: {
       type: DataTypes.STRING,
       allowNull: true,
     },

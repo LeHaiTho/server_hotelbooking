@@ -21,7 +21,7 @@ interface PaymentOrder {
   embed_data: string;
   amount: number;
   description: string;
-  bank_code: string;
+  bank_code?: string;
   mac?: string; // Make mac optional or required depending on your needs
   callback_url: string;
 }
@@ -29,7 +29,7 @@ interface PaymentOrder {
 const create = async (req: Request, res: Response) => {
   const { amount, bookingId, description } = req.body;
   const embed_data = {
-    redirecturl: `https://0daa-2001-ee0-51f3-f730-4864-3159-5e25-198.ngrok-free.app/payment/success?bookingId=${bookingId}`,
+    redirecturl: `https://7754-2001-ee0-51f0-eb50-6556-1366-5a15-c537.ngrok-free.app/payment/success?bookingId=${bookingId}`,
     bookingId,
   };
   const items = [{}];
@@ -43,10 +43,9 @@ const create = async (req: Request, res: Response) => {
     item: JSON.stringify(items),
     embed_data: JSON.stringify(embed_data),
     amount: amount,
-    description: `Lazada - Payment for the order #${transID}`,
-    bank_code: "zalopayapp",
+    description: `Thanh toán lịch phòng #${transID}`,
     callback_url:
-      "https://0daa-2001-ee0-51f3-f730-4864-3159-5e25-198.ngrok-free.app/payment/callback",
+      "https://7754-2001-ee0-51f0-eb50-6556-1366-5a15-c537.ngrok-free.app/payment/callback",
   };
 
   const data =

@@ -4,8 +4,10 @@ import {
   getHotelRegisters,
   createImage,
   getImageHotel,
-  findNearestHotels,
   getHotelById,
+  findHotelsByAddress,
+  findHotelsByRecentSearches,
+  filterHotels,
 } from "../../controllers/Hotel_Properties/hotelController";
 import { verifyToken, checkRole } from "../../middlewares/auth.middleware";
 import { uploadRoom } from "../../middlewares/upload/index";
@@ -28,12 +30,17 @@ router.post(
   createImage
 );
 
-// router.get("/searchresults", findNearestHotels);
-router.get("/searchresults", findNearestHotels);
+// Thay thế cả hai route bằng một route duy nhất
+router.get("/searchresults", findHotelsByAddress);
 
 //Lấy hình ảnh của khách sạn
 router.get("/hotel/get-image/:idhotel/:thumbnail", getImageHotel);
 
 // lấy khách sạn theo id
 router.get("/hotel/:id", getHotelById);
+
+router.post("/hotel/recent-searches", findHotelsByRecentSearches);
+
+router.post("/hotel/filter", filterHotels);
+
 export default router;

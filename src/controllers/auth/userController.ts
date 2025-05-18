@@ -1,4 +1,4 @@
-import { User } from "../../models/index";
+import { Role, User } from "../../models/index";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { JWT_SECRET } from "../../config/constants";
@@ -36,5 +36,30 @@ export const getInfoUser = async (req: any, res: any) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Get info user failed", error });
+  }
+};
+export const getUser = async (req: any, res: any) => {
+  const { role_name } = req.params;
+  try {
+    const role = await Role.findAll({
+      where: { role_name: role_name },
+      raw: true,
+    });
+    if (role.length > 0) {
+      const user = await Promise.all(
+        role.map(async (item: any) => {
+          const result = await User.findOne({
+            where: { id: item.id_user },
+            raw: true,
+          });
+          return { ...item, ...result, key: result?.id };
+        })
+      );
+      res.status(200).json(user);
+      return;
+    }
+  } catch (err) {
+    res.status(500).json({ message: err });
+    return;
   }
 };

@@ -6,6 +6,10 @@ import roomRouter from "./Hotel_Properties/roomRouter";
 import roompriceRouter from "./Hotel_Properties/roompriceRouter";
 import bookingRouter from "./bookingRouter";
 import paymentRouter from "./paymentRouter";
+import locationRouter from "./locationRouter";
+import bookingallRouter from "./adminR/bookingallRouter";
+import dashboardRouter from "./adminR/dashboardRouter";
+
 export {
   manageRouter,
   typeHotelRouter,
@@ -15,4 +19,7 @@ export {
   roompriceRouter,
   bookingRouter,
   paymentRouter,
+  locationRouter,
+  bookingallRouter,
+  dashboardRouter,
 };

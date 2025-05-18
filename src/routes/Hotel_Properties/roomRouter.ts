@@ -2,13 +2,10 @@ import { Router } from "express";
 import {
   create,
   get,
-  getRoomByIdHotel,
-  getRoomByIdHotelMobile,
   getRooms,
   updateBed_Room,
   getRoomsById,
-} from "../../controllers/Hotel_Properties/roomController";
-import {
+  getRoomByIdHotelMobile,
   checkRoomForUpdate,
   checkAndUpdateBookingSchedule,
 } from "../../controllers/Hotel_Properties/roomController";
@@ -22,7 +19,7 @@ router.post(
   checkAndUpdateBookingSchedule
 );
 router.get("/room/get-rooms", verifyToken, checkRole(["quanly"]), getRooms);
-router.get("/room/:hotelId", getRoomByIdHotel);
+// router.get("/room/:hotelId", getRoomByIdHotel);
 router.get("/room/by-hotel/:hotelId", getRoomByIdHotelMobile);
 
 router.post(

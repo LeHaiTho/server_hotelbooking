@@ -17,6 +17,12 @@ import {
   BookingHotel,
   BookingDetail,
   BookingHistory,
+  Province,
+  City,
+  RoomPriceAdjustment,
+  Promotion,
+  BookingDetailPromotion,
+  Rating,
 } from "./models";
 import {
   manageRouter,
@@ -27,8 +33,14 @@ import {
   roompriceRouter,
   bookingRouter,
   paymentRouter,
+  locationRouter,
+  bookingallRouter,
+  dashboardRouter,
 } from "./routes";
 import userRouter from "./routes/auth/userRouter";
+import roomPriceAdjustmentRouter from "./routes/roomPriceAdjustmentRouter";
+import promotionRouter from "./routes/promotionRouter";
+import ratingRouter from "./routes/ratingRouter";
 
 const app = express();
 
@@ -78,6 +90,12 @@ RoomPrice.sync();
 BookingHotel.sync();
 BookingDetail.sync();
 BookingHistory.sync();
+Province.sync();
+City.sync();
+RoomPriceAdjustment.sync();
+Promotion.sync();
+BookingDetailPromotion.sync();
+Rating.sync();
 //cấu hình các router cần thiết
 app.use("/auth", manageRouter);
 app.use("/auth", userRouter);
@@ -87,8 +105,22 @@ app.use("/hotel-properties", typeHotelRouter);
 app.use("/hotel-properties", amenitiesHotelRouter);
 app.use("/hotel-properties", hotelRouter);
 app.use("/hotel-properties", roomRouter);
-app.use("/hotel-properties", roompriceRouter);
+// app.use("/hotel-properties", roompriceRouter);
+app.use("/rooms", roompriceRouter);
 //Booking - CRUD
 app.use("/booking", bookingRouter);
 app.use("/payment", paymentRouter);
+//Location - Search
+app.use("/location", locationRouter);
+// Room Price Adjustment - giá phòng tăng theo ngày cuối tuần, lễ, tết
+app.use("/room-price-adjustment", roomPriceAdjustmentRouter);
+// Promotion - khuyến mãi
+app.use("/promotion", promotionRouter);
+// Add the rating router
+app.use("/ratings", ratingRouter);
+
+//admin
+app.use("/admin", bookingallRouter);
+app.use("/admin/dashboard", dashboardRouter);
+
 export default app;

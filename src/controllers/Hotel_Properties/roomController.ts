@@ -7,149 +7,14 @@ import {
   Room,
   Room_Bed,
   Bed,
+  Promotion,
+  RoomPriceAdjustment,
 } from "../../models/index";
 import { Op, Sequelize } from "sequelize";
 import sequelize from "../../config/sequelize";
+import moment from "moment";
 
 // //Tạo phòng mới
-// const create = async (req: Request, res: Response) => {
-//   const { idhotel } = req.params; // Lấy ID từ URL
-//   const payload = req.body;
-//   try {
-//     const { sophong } = payload;
-//     if (sophong) {
-//       // Tạo phòng theo số phòng
-//       for (let i = 1; i <= sophong; i++) {
-//         const roomValue = Object.fromEntries(
-//           Object.entries(payload).filter(
-//             ([key, value]) => !key.startsWith("giuong")
-//           )
-//         );
-//         const bedValue = Object.entries(payload).filter(([key, value]) =>
-//           key.startsWith("giuong")
-//         );
-
-//         //Lấy id khách sạn và tạo Phòng dựa trên id khách sạn
-//         const room = await Room.create({
-//           id_hotel: idhotel,
-//           ...roomValue,
-//           //Gán đè bằng 1
-//           sophong: 1,
-//         });
-
-//         //thêm bào bảng Room_Bed
-//         const idroom = room.id;
-//         if (bedValue.length > 0) {
-//           // for chờ async/await, forEach thì không
-//           for (const item of bedValue) {
-//             switch (item[0]) {
-//               case "giuongdon":
-//                 await Room_Bed.create({
-//                   room_id: idroom,
-//                   bed_id: 1,
-//                   quantity: item[1],
-//                 });
-//                 break;
-//               case "giuongdoi":
-//                 await Room_Bed.create({
-//                   room_id: idroom,
-//                   bed_id: 2,
-//                   quantity: item[1],
-//                 });
-//                 break;
-//               case "giuonglon":
-//                 await Room_Bed.create({
-//                   room_id: idroom,
-//                   bed_id: 3,
-//                   quantity: item[1],
-//                 });
-//                 break;
-//               case "giuongcuclon":
-//                 await Room_Bed.create({
-//                   room_id: idroom,
-//                   bed_id: 4,
-//                   quantity: item[1],
-//                 });
-//                 break;
-//               case "giuongtang":
-//                 await Room_Bed.create({
-//                   room_id: idroom,
-//                   bed_id: 5,
-//                   quantity: item[1],
-//                 });
-//                 break;
-//               case "giuongsofa":
-//                 await Room_Bed.create({
-//                   room_id: idroom,
-//                   bed_id: 6,
-//                   quantity: item[1],
-//                 });
-//                 break;
-//               case "giuongfuton":
-//                 await Room_Bed.create({
-//                   room_id: idroom,
-//                   bed_id: 7,
-//                   quantity: item[1],
-//                 });
-//                 break;
-//             }
-//           }
-//         }
-//       }
-//       res.status(200).json("OK tạo thành công");
-//       return;
-//     }
-//     res.status(200).json({ message: "số phòng không đúng" });
-//     return;
-//   } catch (err) {
-//     res.status(500).json({ message: err });
-//     return;
-//   }
-// };
-// //Lấy phòng
-// const get = async (req: Request, res: Response) => {
-//   const { idhotel } = req.params; // Lấy ID từ URL
-//   try {
-//     const room = await Room.findAll({
-//       where: { id_hotel: idhotel },
-//       raw: true,
-//     });
-//     //Gọi hàm tính tổng trên cột quantity dựa vào room_id
-//     const roombed = await Promise.all(
-//       room.map(async (item: any) => {
-//         const beds = await Room_Bed.findAll({
-//           attributes: [
-//             [Sequelize.fn("SUM", Sequelize.col("quantity")), "total_beds"],
-//           ],
-//           where: { room_id: item.id },
-//           raw: true,
-//         });
-//         return { ...item, ...beds[0] };
-//       })
-//     );
-//     res.status(200).json(roombed);
-//     return;
-//   } catch (err) {
-//     res.status(500).json({ message: err });
-//     return;
-//   }
-// };
-// //lấy toàn bộ phòng mà không cần id khách sạn phục vụ cho cập nhật giá của phòng
-// const getRooms = async (req: Request, res: Response) => {
-//   try {
-//     const rooms = await Room.findAll({ raw: true });
-//     // Lọc danh sách chỉ lấy các typeroom duy nhất
-//     const uniqueRooms = Array.from(
-//       new Map(rooms.map((room) => [room?.loaichonghi, room])).values()
-//     );
-//     res.status(200).json(uniqueRooms);
-//     return;
-//   } catch (err) {
-//     res.status(500).json({ message: err });
-//     return;
-//   }
-// };
-//Tạo phòng mới
 const create = async (req: Request, res: Response) => {
   const { idhotel } = req.params; // Lấy ID từ URL
   const payload = req.body;
@@ -244,6 +109,144 @@ const create = async (req: Request, res: Response) => {
     return;
   }
 };
+// //Lấy phòng
+// const get = async (req: Request, res: Response) => {
+//   const { idhotel } = req.params; // Lấy ID từ URL
+//   try {
+//     const room = await Room.findAll({
+//       where: { id_hotel: idhotel },
+//       raw: true,
+//     });
+//     //Gọi hàm tính tổng trên cột quantity dựa vào room_id
+//     const roombed = await Promise.all(
+//       room.map(async (item: any) => {
+//         const beds = await Room_Bed.findAll({
+//           attributes: [
+//             [Sequelize.fn("SUM", Sequelize.col("quantity")), "total_beds"],
+//           ],
+//           where: { room_id: item.id },
+//           raw: true,
+//         });
+//         return { ...item, ...beds[0] };
+//       })
+//     );
+//     res.status(200).json(roombed);
+//     return;
+//   } catch (err) {
+//     res.status(500).json({ message: err });
+//     return;
+//   }
+// };
+// //lấy toàn bộ phòng mà không cần id khách sạn phục vụ cho cập nhật giá của phòng
+// const getRooms = async (req: Request, res: Response) => {
+//   try {
+//     const rooms = await Room.findAll({ raw: true });
+//     // Lọc danh sách chỉ lấy các typeroom duy nhất
+//     const uniqueRooms = Array.from(
+//       new Map(rooms.map((room) => [room?.loaichonghi, room])).values()
+//     );
+//     res.status(200).json(uniqueRooms);
+//     return;
+//   } catch (err) {
+//     res.status(500).json({ message: err });
+//     return;
+//   }
+// };
+//Tạo phòng mới
+// const create = async (req: Request, res: Response) => {
+//   const { idhotel } = req.params; // Lấy ID từ URL
+//   const payload = req.body;
+//   try {
+//     const { sophong } = payload;
+//     if (sophong) {
+//       // Tạo phòng theo số phòng
+//       for (let i = 1; i <= sophong; i++) {
+//         const roomValue = Object.fromEntries(
+//           Object.entries(payload).filter(
+//             ([key, value]) => !key.startsWith("giuong")
+//           )
+//         );
+//         const bedValue = Object.entries(payload).filter(([key, value]) =>
+//           key.startsWith("giuong")
+//         );
+
+//         //Lấy id khách sạn và tạo Phòng dựa trên id khách sạn
+//         const room = await Room.create({
+//           id_hotel: idhotel,
+//           ...roomValue,
+//           //Gán đè bằng 1
+//           sophong: 1,
+//         });
+
+//         //thêm bào bảng Room_Bed
+//         const idroom = room.id;
+//         if (bedValue.length > 0) {
+//           // for chờ async/await, forEach thì không
+//           for (const item of bedValue) {
+//             switch (item[0]) {
+//               case "giuongdon":
+//                 await Room_Bed.create({
+//                   room_id: idroom,
+//                   bed_id: 1,
+//                   quantity: item[1],
+//                 });
+//                 break;
+//               case "giuongdoi":
+//                 await Room_Bed.create({
+//                   room_id: idroom,
+//                   bed_id: 2,
+//                   quantity: item[1],
+//                 });
+//                 break;
+//               case "giuonglon":
+//                 await Room_Bed.create({
+//                   room_id: idroom,
+//                   bed_id: 3,
+//                   quantity: item[1],
+//                 });
+//                 break;
+//               case "giuongcuclon":
+//                 await Room_Bed.create({
+//                   room_id: idroom,
+//                   bed_id: 4,
+//                   quantity: item[1],
+//                 });
+//                 break;
+//               case "giuongtang":
+//                 await Room_Bed.create({
+//                   room_id: idroom,
+//                   bed_id: 5,
+//                   quantity: item[1],
+//                 });
+//                 break;
+//               case "giuongsofa":
+//                 await Room_Bed.create({
+//                   room_id: idroom,
+//                   bed_id: 6,
+//                   quantity: item[1],
+//                 });
+//                 break;
+//               case "giuongfuton":
+//                 await Room_Bed.create({
+//                   room_id: idroom,
+//                   bed_id: 7,
+//                   quantity: item[1],
+//                 });
+//                 break;
+//             }
+//           }
+//         }
+//       }
+//       res.status(200).json("OK tạo thành công");
+//       return;
+//     }
+//     res.status(200).json({ message: "số phòng không đúng" });
+//     return;
+//   } catch (err) {
+//     res.status(500).json({ message: err });
+//     return;
+//   }
+// };
 //Lấy phòng
 const get = async (req: Request, res: Response) => {
   const { idhotel } = req.params; // Lấy ID từ URL
@@ -411,9 +414,196 @@ const getRoomByIdHotel = async (req: Request, res: Response) => {
 };
 
 //Lấy tất cả phòng theo id khách sạn phía mobile (cách này này lấy có chọn lọc)
-export const getRoomByIdHotelMobile = async (req: Request, res: Response) => {
+// export const getRoomByIdHotelMobile = async (req: Request, res: Response) => {
+//   const { hotelId } = req.params;
+//   const { checkInDate, checkOutDate, adults, children, rooms } = req.query;
+
+//   const desiredRooms = Number(rooms);
+//   const totalGuests = Number(adults);
+//   const minPeoplePerRoom = Math.ceil(totalGuests / desiredRooms);
+
+//   try {
+//     const hotel = await Hotel.findByPk(hotelId, {
+//       include: [
+//         {
+//           model: Room,
+//           where: {
+//             soluongkhach: {
+//               [Op.gte]: minPeoplePerRoom,
+//             },
+//           },
+//           attributes: [
+//             "id",
+//             "sotien",
+//             "soluongkhach",
+//             "loaichonghi",
+//             "nameroom",
+//           ],
+//           include: [
+//             {
+//               model: BookingDetail,
+//               as: "BookingDetails",
+//               where: {
+//                 [Op.or]: [
+//                   {
+//                     checkin_date: { [Op.between]: [checkInDate, checkOutDate] },
+//                   },
+//                   {
+//                     checkout_date: {
+//                       [Op.between]: [checkInDate, checkOutDate],
+//                     },
+//                   },
+//                   {
+//                     [Op.and]: [
+//                       { checkin_date: { [Op.lte]: checkInDate } },
+//                       { checkout_date: { [Op.gte]: checkOutDate } },
+//                     ],
+//                   },
+//                 ],
+//                 status: { [Op.ne]: "CANCELLED" },
+//               },
+//               required: false,
+//             },
+//           ],
+//           required: true,
+//         },
+//       ],
+//     });
+
+//     if (!hotel) {
+//       res.status(404).json({
+//         message: "Không tìm thấy khách sạn",
+//       });
+//       return;
+//     }
+
+//     const plainHotel = hotel.get({ plain: true });
+//     const availableRooms = plainHotel.Rooms.filter(
+//       (room: any) => room.BookingDetails.length === 0
+//     );
+
+//     const roomNameType: any = {};
+//     availableRooms.forEach((room: any) => {
+//       const key = `${room.loaichonghi}-${room.nameroom}-${room.soluongkhach}`;
+//       console.log(key);
+//       if (!roomNameType[key]) {
+//         roomNameType[key] = {
+//           roomType: room.loaichonghi,
+//           roomName: room.nameroom,
+//           roomCapacity: room.soluongkhach,
+//           roomPrice: room.sotien,
+//           totalRoom: 0,
+//           roomIds: [],
+//         };
+//       }
+//       roomNameType[key].totalRoom++;
+//       roomNameType[key].roomIds.push(room.id);
+//     });
+//     const roomNameTypeArray = Object.values(roomNameType).map((item: any) => ({
+//       id: item.roomIds[0], // hoặc tạo uuid nếu muốn duy nhất
+//       ...item,
+//     }));
+
+//     res.status(200).json(roomNameTypeArray);
+//   } catch (err) {
+//     console.log(err);
+//     res.status(500).json({ message: err });
+//   }
+// };
+
+// Hàm calculateFinalPrice (giữ nguyên)
+const calculateFinalPrice = (
+  basePrice: number,
+  adjustments: any[],
+  promotions: any[],
+  checkInDate: string,
+  checkOutDate: string
+): { initial_price: number; final_price: number } => {
+  const checkIn = moment(checkInDate);
+  const checkOut = moment(checkOutDate);
+
+  const days = checkOut.diff(checkIn, "days");
+  const initialPrice = basePrice * days;
+
+  let totalPrice = 0;
+
+  const daysOfWeek = [
+    "Chủ nhật",
+    "Thứ hai",
+    "Thứ ba",
+    "Thứ tư",
+    "Thứ năm",
+    "Thứ sáu",
+    "Thứ bảy",
+  ];
+
+  for (let m = checkIn.clone(); m.isBefore(checkOut); m.add(1, "days")) {
+    let dailyPrice = basePrice;
+    const currentDay = m.day();
+
+    const applicableAdjustments = adjustments
+      .filter((adj) => {
+        const start = adj.start_date ? moment(adj.start_date) : null;
+        const end = adj.end_date ? moment(adj.end_date) : null;
+        return (
+          (start === null || m.isSameOrAfter(start)) &&
+          (end === null || m.isSameOrBefore(end)) &&
+          adj.apply_to_days.includes(currentDay)
+        );
+      })
+      .sort((a, b) => moment(b.createdAt).diff(moment(a.createdAt)));
+
+    if (applicableAdjustments.length > 0) {
+      const latestAdjustment = applicableAdjustments[0];
+      if (latestAdjustment.adjustment_type === "PERCENTAGE") {
+        dailyPrice *= 1 + Number(latestAdjustment.adjustment_value) / 100;
+      } else if (latestAdjustment.adjustment_type === "FIXED") {
+        dailyPrice += Number(latestAdjustment.adjustment_value);
+      }
+    } else {
+      console.log(
+        `Không áp dụng ngày thứ: ${daysOfWeek[currentDay]} (${m.format(
+          "YYYY-MM-DD"
+        )})`
+      );
+    }
+
+    const applicablePromotions = promotions
+      .filter((promo) => {
+        const start = promo.start_date ? moment(promo.start_date) : null;
+        const end = promo.end_date ? moment(promo.end_date) : null;
+        return (
+          promo.is_active &&
+          (start === null || m.isSameOrAfter(start)) &&
+          (end === null || m.isSameOrBefore(end))
+        );
+      })
+      .sort((a, b) => moment(b.createdAt).diff(moment(a.createdAt)));
+
+    for (const promo of applicablePromotions) {
+      if (promo.discount_type === "PERCENTAGE") {
+        dailyPrice *= 1 - Number(promo.discount_value) / 100;
+      } else if (promo.discount_type === "FIXED") {
+        dailyPrice -= Number(promo.discount_value);
+      }
+    }
+
+    totalPrice += Math.max(0, Math.round(dailyPrice));
+  }
+
+  return { initial_price: initialPrice, final_price: totalPrice };
+};
+
+export const getRoomByIdHotelMobile = async (req: any, res: any) => {
   const { hotelId } = req.params;
   const { checkInDate, checkOutDate, adults, children, rooms } = req.query;
+
+  // Validate input
+  if (!checkInDate || !checkOutDate || !adults || !rooms) {
+    return res.status(400).json({
+      message: "checkInDate, checkOutDate, adults, và rooms là bắt buộc",
+    });
+  }
 
   const desiredRooms = Number(rooms);
   const totalGuests = Number(adults);
@@ -461,6 +651,45 @@ export const getRoomByIdHotelMobile = async (req: Request, res: Response) => {
               },
               required: false,
             },
+            {
+              model: Promotion,
+              as: "Promotions",
+              attributes: [
+                "name",
+                "discount_type",
+                "discount_value",
+                "start_date",
+                "end_date",
+                "is_active",
+              ],
+              where: {
+                is_active: true,
+                [Op.or]: [
+                  { start_date: null },
+                  { start_date: { [Op.lte]: checkInDate } },
+                ],
+              },
+              required: false,
+            },
+            {
+              model: RoomPriceAdjustment,
+              as: "RoomPriceAdjustments",
+              attributes: [
+                "reason",
+                "adjustment_type",
+                "adjustment_value",
+                "apply_to_days",
+                "start_date",
+                "end_date",
+              ],
+              where: {
+                [Op.or]: [
+                  { start_date: null },
+                  { start_date: { [Op.lte]: checkInDate } },
+                ],
+              },
+              required: false,
+            },
           ],
           required: true,
         },
@@ -468,27 +697,46 @@ export const getRoomByIdHotelMobile = async (req: Request, res: Response) => {
     });
 
     if (!hotel) {
-      res.status(404).json({
+      return res.status(404).json({
         message: "Không tìm thấy khách sạn",
       });
-      return;
     }
 
     const plainHotel = hotel.get({ plain: true });
+
+    // Lọc phòng trống và tính giá
     const availableRooms = plainHotel.Rooms.filter(
       (room: any) => room.BookingDetails.length === 0
-    );
+    ).map((room: any) => {
+      const { initial_price, final_price } = calculateFinalPrice(
+        room.sotien,
+        room.RoomPriceAdjustments,
+        room.Promotions,
+        checkInDate as string,
+        checkOutDate as string
+      );
+      return {
+        ...room,
+        initial_price,
+        final_price,
+      };
+    });
 
+    // Nhóm phòng theo loaichonghi, nameroom, soluongkhach
     const roomNameType: any = {};
     availableRooms.forEach((room: any) => {
       const key = `${room.loaichonghi}-${room.nameroom}-${room.soluongkhach}`;
-      console.log(key);
       if (!roomNameType[key]) {
         roomNameType[key] = {
+          id: room.id,
           roomType: room.loaichonghi,
           roomName: room.nameroom,
           roomCapacity: room.soluongkhach,
           roomPrice: room.sotien,
+          initial_price: room.initial_price,
+          final_price: room.final_price,
+          promotions: room.Promotions, // Dữ liệu khuyến mãi ngắn gọn
+          adjustments: room.RoomPriceAdjustments, // Dữ liệu điều chỉnh ngắn gọn
           totalRoom: 0,
           roomIds: [],
         };
@@ -496,15 +744,13 @@ export const getRoomByIdHotelMobile = async (req: Request, res: Response) => {
       roomNameType[key].totalRoom++;
       roomNameType[key].roomIds.push(room.id);
     });
-    const roomNameTypeArray = Object.values(roomNameType).map((item: any) => ({
-      id: item.roomIds[0], // hoặc tạo uuid nếu muốn duy nhất
-      ...item,
-    }));
+
+    const roomNameTypeArray = Object.values(roomNameType);
 
     res.status(200).json(roomNameTypeArray);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err });
+    console.error("Lỗi khi lấy danh sách phòng:", err);
+    res.status(500).json({ message: "Lỗi server" });
   }
 };
 
@@ -586,9 +832,9 @@ export const getRoomByIdHotelMobile = async (req: Request, res: Response) => {
 // };
 
 export const checkRoomForUpdate = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
+  req: any,
+  res: any,
+  next: any
 ): Promise<void> => {
   const { bookingId, newCheckInDate, newCheckOutDate } = req.body;
 
