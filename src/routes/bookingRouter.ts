@@ -19,7 +19,7 @@ router.post("/cancel", cancelBooking);
 router.get("/filter", verifyToken, getBookingByStatus);
 router.get("/upcoming", verifyToken, getUpcomingBookings);
 router.get("/:id", getBookingId);
-router.post("/", createBooking);
+router.post("/", verifyToken, createBooking);
 router.get("/revenue/:hotelId", getRevenueReport);
 
 // Thêm route mới để gửi email xác nhận đặt phòng

@@ -145,6 +145,7 @@ const sendBookingConfirmationEmail = async (
 export const createBooking = async (req: Request, res: Response) => {
   const { formData, hotelId, selectedRooms, searchCondition, payment } =
     req.body;
+  const user = req.body.user;
 
   const totalFinalPrice = selectedRooms.reduce(
     (acc: number, room: any) => acc + room.final_price * room.quantity,
@@ -168,7 +169,7 @@ export const createBooking = async (req: Request, res: Response) => {
 
       const booking: any = await BookingHotel.create(
         {
-          id_user: 16,
+          id_user: user.id,
           id_hotel: hotelId,
           total_price: totalFinalPrice,
           status: "PENDING",
