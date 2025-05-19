@@ -29,7 +29,7 @@ interface PaymentOrder {
 const create = async (req: Request, res: Response) => {
   const { amount, bookingId, description } = req.body;
   const embed_data = {
-    redirecturl: `https://7754-2001-ee0-51f0-eb50-6556-1366-5a15-c537.ngrok-free.app/payment/success?bookingId=${bookingId}`,
+    redirecturl: `${process.env.NGROK_URL}/payment/success?bookingId=${bookingId}`,
     bookingId,
   };
   const items = [{}];
@@ -44,8 +44,7 @@ const create = async (req: Request, res: Response) => {
     embed_data: JSON.stringify(embed_data),
     amount: amount,
     description: `Thanh toán lịch phòng #${transID}`,
-    callback_url:
-      "https://7754-2001-ee0-51f0-eb50-6556-1366-5a15-c537.ngrok-free.app/payment/callback",
+    callback_url: `${process.env.NGROK_URL}/payment/callback`,
   };
 
   const data =

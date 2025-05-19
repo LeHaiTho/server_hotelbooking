@@ -18,6 +18,8 @@ import moment from "moment";
 const create = async (req: Request, res: Response) => {
   const { idhotel } = req.params; // Lấy ID từ URL
   const payload = req.body;
+  console.log(idhotel);
+  console.log(payload);
   try {
     const { sophong } = payload;
     if (sophong) {
@@ -105,6 +107,7 @@ const create = async (req: Request, res: Response) => {
     res.status(200).json({ message: "số phòng không đúng" });
     return;
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: err });
     return;
   }

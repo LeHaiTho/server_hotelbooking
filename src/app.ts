@@ -41,6 +41,7 @@ import userRouter from "./routes/auth/userRouter";
 import roomPriceAdjustmentRouter from "./routes/roomPriceAdjustmentRouter";
 import promotionRouter from "./routes/promotionRouter";
 import ratingRouter from "./routes/ratingRouter";
+import statsRouter from "./routes/statsRouter";
 
 const app = express();
 
@@ -77,25 +78,25 @@ app.use((req, res, next) => {
 });
 
 //Đồng bộ Model lên CSDL
-User.sync();
-Role.sync();
-Hotel.sync();
-Amenities_Hotel.sync();
-Type_Hotel.sync();
-TypeRoom.sync();
-Bed.sync();
-Room_Bed.sync();
-Room.sync();
-RoomPrice.sync();
-BookingHotel.sync();
-BookingDetail.sync();
-BookingHistory.sync();
-Province.sync();
-City.sync();
-RoomPriceAdjustment.sync();
-Promotion.sync();
-BookingDetailPromotion.sync();
-Rating.sync();
+// User.sync();
+// Role.sync();
+// Hotel.sync();
+// Amenities_Hotel.sync();
+// Type_Hotel.sync();
+// TypeRoom.sync();
+// Bed.sync();
+// Room_Bed.sync();
+// Room.sync();
+// RoomPrice.sync();
+// BookingHotel.sync();
+// BookingDetail.sync();
+// BookingHistory.sync();
+// Province.sync();
+// City.sync();
+// RoomPriceAdjustment.sync();
+// Promotion.sync();
+// BookingDetailPromotion.sync();
+// Rating.sync();
 //cấu hình các router cần thiết
 app.use("/auth", manageRouter);
 app.use("/auth", userRouter);
@@ -122,5 +123,5 @@ app.use("/ratings", ratingRouter);
 //admin
 app.use("/admin", bookingallRouter);
 app.use("/admin/dashboard", dashboardRouter);
-
+app.use("/stats", statsRouter);
 export default app;

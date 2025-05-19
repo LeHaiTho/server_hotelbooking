@@ -77,8 +77,8 @@ BookingDetailPromotion.belongsTo(BookingDetail, {
   foreignKey: "id_booking_detail",
 });
 
-Room.belongsTo(TypeRoom, { foreignKey: "id_type_room" });
-TypeRoom.hasMany(Room, { foreignKey: "id_type_room" });
+// Room.belongsTo(TypeRoom, { foreignKey: "id_type_room" });
+// TypeRoom.hasMany(Room, { foreignKey: "id_type_room" });
 
 export {
   User,

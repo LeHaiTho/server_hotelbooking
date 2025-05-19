@@ -9,8 +9,8 @@ import { Op } from "sequelize";
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "thien190602@gmail.com",
-    pass: "rsmp zfey ussc ikrd",
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
@@ -22,7 +22,7 @@ const sendEmail = async (
 ) => {
   try {
     const mailOptions = {
-      from: "thien190602@gmail.com",
+      from: process.env.EMAIL_USER,
       to: toEmail,
       subject: subject,
       html: htmlContent,

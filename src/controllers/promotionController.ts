@@ -301,3 +301,105 @@ export const getHotelPromotions = async (req: any, res: any) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+
+// Xóa khuyến mãi
+export const deletePromotion = async (req: any, res: any) => {
+  const { id } = req.params;
+
+  if (!id || isNaN(Number(id))) {
+    return res.status(400).json({ message: "ID khuyến mãi không hợp lệ" });
+  }
+
+  try {
+    // Tìm khuyến mãi cần xóa
+    const promotion = await Promotion.findByPk(id);
+
+    if (!promotion) {
+      return res.status(404).json({ message: "Không tìm thấy khuyến mãi" });
+    }
+
+    // Kiểm tra xem có phải khuyến mãi hệ thống không
+    if (promotion.id_hotel !== null) {
+      return res
+        .status(403)
+        .json({ message: "Chỉ có thể xóa khuyến mãi hệ thống" });
+    }
+
+    // Xóa khuyến mãi
+    await promotion.destroy();
+
+    res.status(200).json({
+      message: "Xóa khuyến mãi thành công",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+// Cập nhật khuyến mãi
+export const updatePromotion = async (req: any, res: any) => {
+  const { id } = req.params;
+  const {
+    name,
+    description,
+    discountType,
+    discountValue,
+    startDate,
+    endDate,
+    minStay,
+    bookingDaysInAdvance,
+    isActive,
+  } = req.body;
+
+  if (!id || isNaN(Number(id))) {
+    return res.status(400).json({ message: "ID khuyến mãi không hợp lệ" });
+  }
+
+  // Kiểm tra discountType
+  if (discountType && !["PERCENTAGE", "FIXED"].includes(discountType)) {
+    return res.status(400).json({ message: "Loại giảm giá không hợp lệ" });
+  }
+
+  try {
+    // Tìm khuyến mãi cần cập nhật
+    const promotion = await Promotion.findByPk(id);
+
+    if (!promotion) {
+      return res.status(404).json({ message: "Không tìm thấy khuyến mãi" });
+    }
+
+    // Kiểm tra xem có phải khuyến mãi hệ thống không
+    if (promotion.id_hotel !== null) {
+      return res
+        .status(403)
+        .json({ message: "Chỉ có thể cập nhật khuyến mãi hệ thống" });
+    }
+
+    // Cập nhật thông tin
+    await promotion.update({
+      name: name || promotion.name,
+      description:
+        description !== undefined ? description : promotion.description,
+      discount_type: discountType || promotion.discount_type,
+      discount_value:
+        discountValue !== undefined ? discountValue : promotion.discount_value,
+      start_date: startDate || promotion.start_date,
+      end_date: endDate || promotion.end_date,
+      min_stay: minStay !== undefined ? minStay : promotion.min_stay,
+      booking_days_in_advance:
+        bookingDaysInAdvance !== undefined
+          ? bookingDaysInAdvance
+          : promotion.booking_days_in_advance,
+      is_active: isActive !== undefined ? isActive : promotion.is_active,
+    });
+
+    res.status(200).json({
+      message: "Cập nhật khuyến mãi thành công",
+      promotion,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};

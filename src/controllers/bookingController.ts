@@ -25,8 +25,8 @@ import {
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "thien190602@gmail.com",
-    pass: "rsmp zfey ussc ikrd",
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
@@ -39,7 +39,7 @@ const sendEmail = async (
 ) => {
   try {
     const mailOptions = {
-      from: "thien190602@gmail.com", // Địa chỉ email gửi đi
+      from: process.env.EMAIL_USER, // Địa chỉ email gửi đi
       to: toEmail, // Địa chỉ email người nhận
       subject: subject, // Chủ đề email
       text: textContent, // Nội dung văn bản
@@ -715,5 +715,110 @@ export const getRevenueReport = async (req: any, res: any) => {
   } catch (error) {
     console.error("Lỗi khi lấy danh sách đặt phòng:", error);
     res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+// Thêm API endpoint mới để check-in (chuyển trạng thái từ PENDING sang CONFIRMED)
+export const checkInBooking = async (req: any, res: any) => {
+  const { bookingId } = req.params;
+
+  if (!bookingId) {
+    return res.status(400).json({ message: "Thiếu ID đặt phòng" });
+  }
+
+  const transaction = await sequelize.transaction();
+
+  try {
+    // Tìm booking cần check-in
+    const booking = await BookingHotel.findByPk(bookingId, { transaction });
+
+    if (!booking) {
+      await transaction.rollback();
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy thông tin đặt phòng" });
+    }
+
+    // Kiểm tra trạng thái hiện tại
+    if (booking.status !== "PENDING") {
+      await transaction.rollback();
+      return res.status(400).json({
+        message:
+          booking.status === "CONFIRMED"
+            ? "Đặt phòng đã được check-in trước đó"
+            : "Không thể check-in đặt phòng đã hủy",
+      });
+    }
+
+    // Cập nhật trạng thái BookingHotel
+    await BookingHotel.update(
+      {
+        status: "CONFIRMED",
+        updatedAt: new Date(),
+      },
+      {
+        where: { id: bookingId },
+        transaction,
+      }
+    );
+
+    // Cập nhật trạng thái BookingDetail
+    const bookingDetails = await BookingDetail.findAll({
+      where: { id_booking_hotel: bookingId },
+      transaction,
+    });
+
+    if (bookingDetails.length === 0) {
+      await transaction.rollback();
+      return res.status(404).json({
+        message: "Không tìm thấy chi tiết đặt phòng",
+      });
+    }
+
+    // Cập nhật trạng thái tất cả BookingDetail
+    await BookingDetail.update(
+      {
+        status: "CONFIRMED",
+        updatedAt: new Date(),
+      },
+      {
+        where: { id_booking_hotel: bookingId },
+        transaction,
+      }
+    );
+
+    // Commit transaction
+    await transaction.commit();
+
+    // Lấy thông tin booking đã cập nhật để trả về
+    const updatedBooking = await BookingHotel.findByPk(bookingId, {
+      include: [
+        {
+          model: User,
+          attributes: ["id", "firstname", "lastname", "phonenumber", "email"],
+        },
+        {
+          model: Hotel,
+          attributes: ["id", "name", "address"],
+        },
+        {
+          model: BookingDetail,
+          include: [
+            {
+              model: Room,
+            },
+          ],
+        },
+      ],
+    });
+
+    res.status(200).json({
+      message: "Check-in thành công",
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error("Error during check-in:", error);
+    res.status(500).json({ message: "Lỗi server khi thực hiện check-in" });
   }
 };

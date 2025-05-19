@@ -94,9 +94,7 @@ export const sendEmailWithAttachment = async (
 ): Promise<void> => {
   try {
     await transporter.sendMail({
-      from:
-        process.env.EMAIL_USER ||
-        '"Hệ thống đặt phòng" <thien190602@gmail.com>',
+      from: process.env.EMAIL_USER,
       to,
       subject,
       html,

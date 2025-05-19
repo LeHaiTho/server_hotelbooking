@@ -9,6 +9,7 @@ import {
   updatePaymentStatus,
   sendBookingReminder,
   getRevenueReport,
+  checkInBooking,
 } from "../controllers/bookingController";
 import { verifyToken } from "../middlewares/auth.middleware";
 
@@ -32,5 +33,8 @@ router.post("/payment/update-status", updatePaymentStatus);
 
 // Thêm route mới để gửi email nhắc lịch thủ công
 router.post("/send-reminder/:bookingId", sendBookingReminder);
+
+// Thêm route mới để check-in (chuyển trạng thái từ PENDING sang CONFIRMED)
+router.post("/check-in/:bookingId", checkInBooking);
 
 export default router;
