@@ -155,9 +155,6 @@ export const createBooking = async (req: Request, res: Response) => {
     (acc: number, room: any) => acc + room.initial_price * room.quantity,
     0
   );
-
-  console.log("totalInitialPrice", totalInitialPrice);
-  console.log("totalFinalPrice", totalFinalPrice);
   try {
     const result = await sequelize.transaction(async (t) => {
       // Lấy thông tin khách sạn

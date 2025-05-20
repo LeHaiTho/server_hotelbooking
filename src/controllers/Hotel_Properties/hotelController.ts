@@ -24,17 +24,64 @@ const removeVietnameseTones = (str: string) => {
     .replace(/Đ/g, "D");
 };
 
-function normalizeAddress(address: string) {
+const normalizeAddress = (address: string) => {
+  // Chuyển đổi thành chữ thường và loại bỏ dấu
   const noDiacritic = removeVietnameseTones(address);
-  return noDiacritic
+  const normalized = noDiacritic
     .toLowerCase()
-    .replace(/\b(tp|t.p|tp.)\b/gi, "thanh pho")
-    .replace(/\b(q|q.|quan)\b/gi, "quan")
-    .replace(/\b(p|p.|phuong)\b/gi, "phuong")
-    .replace(/[^\w\s]/gi, "") // loại dấu câu
-    .replace(/\s+/g, " ")
+    // Chuẩn hóa các từ khóa địa lý phổ biến
+    .replace(/\b(tp|t\.p|tp\.|thanh pho)\b/gi, "thanhpho")
+    .replace(/\b(t|t\.|tinh)\b/gi, "tinh")
+    .replace(/\b(q|q\.|quan)\b/gi, "quan")
+    .replace(/\b(p|p\.|phuong)\b/gi, "phuong")
+    .replace(/\b(h|h\.|huyen)\b/gi, "huyen")
+    .replace(/\b(tx|tx\.|thi xa)\b/gi, "thixa")
+    .replace(/\s+/g, " ") // Loại bỏ khoảng trắng thừa
     .trim();
-}
+
+  return normalized;
+};
+
+// Hàm mới để trích xuất các thành phần địa lý quan trọng từ địa chỉ
+const extractLocationComponents = (address: string) => {
+  const normalized = normalizeAddress(address);
+
+  // Tách địa chỉ thành các phần theo dấu phẩy
+  const parts = normalized.split(",").map((part) => part.trim());
+
+  // Mảng lưu các thành phần địa lý quan trọng
+  const components = [];
+
+  // Xử lý từng phần của địa chỉ
+  for (const part of parts) {
+    // Tìm thành phố/tỉnh
+    if (part.includes("thanhpho") || part.includes("tinh")) {
+      // Trích xuất tên địa điểm (bỏ từ khóa thanhpho/tinh)
+      const locationName = part
+        .replace(/thanhpho\s+/i, "")
+        .replace(/tinh\s+/i, "")
+        .trim();
+
+      if (locationName) {
+        components.push(locationName);
+      }
+    } else {
+      // Thêm phần còn lại vào components nếu có ý nghĩa
+      if (part.length > 2) {
+        components.push(part);
+      }
+    }
+  }
+
+  // Nếu không tìm thấy thành phần nào, sử dụng toàn bộ địa chỉ đã chuẩn hóa
+  if (components.length === 0) {
+    // Tách thành các từ và lọc bỏ các từ quá ngắn
+    const words = normalized.split(" ").filter((word) => word.length > 2);
+    components.push(...words);
+  }
+
+  return components;
+};
 
 const create = async (req: Request, res: Response) => {
   const payload = req.body;
@@ -381,26 +428,42 @@ const findHotelsByAddress = async (req: any, res: any) => {
     }
     // Nếu tìm kiếm theo địa chỉ
     else if (address) {
-      const formattedAddress = normalizeAddress(address);
-      const addressKeywords = formattedAddress.split(" ");
+      console.log("Searching by address:", address);
 
-      if (addressKeywords.length <= 2) {
+      // Trích xuất các thành phần địa lý quan trọng
+      const locationComponents = extractLocationComponents(address);
+      console.log("Location components:", locationComponents);
+
+      if (locationComponents.length > 0) {
+        // Tạo điều kiện tìm kiếm dựa trên các thành phần địa lý
+        const orConditions = [];
+
+        // Tìm kiếm trong city
+        orConditions.push(
+          ...locationComponents.map((component) => ({
+            city: { [Op.iLike]: `%${component}%` },
+          }))
+        );
+
+        // Tìm kiếm trong address_no_diacritic
+        orConditions.push(
+          ...locationComponents.map((component) => ({
+            address_no_diacritic: { [Op.iLike]: `%${component}%` },
+          }))
+        );
+
         whereCondition = {
-          [Op.or]: addressKeywords.map((keyword) => ({
-            address_no_diacritic: {
-              [Op.iLike]: `%${keyword}%`,
-            },
-          })),
+          [Op.or]: orConditions,
         };
       } else {
+        // Fallback: sử dụng địa chỉ đã chuẩn hóa
+        const formattedAddress = normalizeAddress(address);
         whereCondition = {
-          address_no_diacritic: {
-            [Op.iLike]: {
-              [Op.any]: addressKeywords.map((keyword) => `%${keyword}%`),
-            },
-          },
+          address_no_diacritic: { [Op.iLike]: `%${formattedAddress}%` },
         };
       }
+
+      console.log("Final where condition:", JSON.stringify(whereCondition));
     } else {
       return res
         .status(400)
