@@ -174,3 +174,63 @@ export const getHotelRoomPriceAdjustments = async (req: any, res: any) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+
+// Lấy danh sách điều chỉnh giá cho một phòng cụ thể
+export const getRoomPriceAdjustments = async (req: any, res: any) => {
+  const { hotel_id, room_id } = req.params;
+
+  if (
+    !hotel_id ||
+    isNaN(Number(hotel_id)) ||
+    !room_id ||
+    isNaN(Number(room_id))
+  ) {
+    return res
+      .status(400)
+      .json({ message: "hotel_id hoặc room_id không hợp lệ" });
+  }
+
+  try {
+    // Kiểm tra phòng có thuộc khách sạn không
+    const room = await Room.findOne({
+      where: {
+        id: Number(room_id),
+        id_hotel: Number(hotel_id),
+      },
+    });
+
+    if (!room) {
+      return res.status(404).json({
+        message: "Phòng không tồn tại hoặc không thuộc khách sạn này",
+      });
+    }
+
+    // Lấy danh sách điều chỉnh giá cho phòng
+    const adjustments = await RoomPriceAdjustment.findAll({
+      where: {
+        id_room: Number(room_id),
+      },
+      order: [
+        ["start_date", "ASC"],
+        ["createdAt", "DESC"],
+      ],
+    });
+
+    // Xử lý dữ liệu trả về
+    const result = adjustments.map((adjustment: any) => ({
+      adjustment_id: adjustment.id,
+      start_date: moment(adjustment.start_date).format("YYYY-MM-DD"),
+      end_date: moment(adjustment.end_date).format("YYYY-MM-DD"),
+      adjustment_type: adjustment.adjustment_type,
+      adjustment_value: adjustment.adjustment_value,
+      reason: adjustment.reason || "Không có lý do",
+      apply_to_days: adjustment.apply_to_days || [0, 1, 2, 3, 4, 5, 6],
+      created_at: moment(adjustment.createdAt).format("YYYY-MM-DD HH:mm:ss"),
+    }));
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
